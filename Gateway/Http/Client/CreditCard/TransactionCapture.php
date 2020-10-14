@@ -74,7 +74,7 @@ class TransactionCapture implements ClientInterface
         $orderParams['currency']         = $request['CURRENCY'];
         $orderParams['line_items']       = $request['line_items'];
         $orderParams['tax_lines']        = $request['tax_lines'];
-        $orderParams['customer_info']    = $request['customer_info'];
+        $orderParams['customer_info']    = $request['CONNEKTA_CUSTOMER_ID'] ? $request['CONNEKTA_CUSTOMER_ID'] : $request['customer_info'];
         $orderParams['discount_lines']   = $request['discount_lines'];
         if (!empty($request['shipping_lines'])) {
             $orderParams['shipping_lines']   = $request['shipping_lines'];
@@ -91,7 +91,6 @@ class TransactionCapture implements ClientInterface
         try {
             $newOrder = $this->_conektaOrder->create($orderParams);
             $newCharge = $newOrder->createCharge($chargeParams);
-
             if (isset($newCharge->id) || !empty($newCharge->id)) {
                 $result_code = 1;
                 $txn_id = $newCharge->id;
@@ -106,9 +105,13 @@ class TransactionCapture implements ClientInterface
                     'response' => $e->getMessage()
                 ]
             );
+
+            $this->_conektaHelper->deleteSavedCard($orderParams, $chargeParams);
+
             $this->_conektaLogger->info(
                 'HTTP Client TransactionCapture :: placeRequest: Payment capturing error ' . $e->getMessage()
             );
+
             $error_code = $e->getMessage();
             $result_code = 666;
             throw new \Magento\Framework\Exception\LocalizedException(__($error_code));

@@ -15,6 +15,8 @@ class DataAssignObserver extends AbstractDataAssignObserver
     const CC_LAST_4 = 'cc_last_4';
     const CARD_TOKEN = 'card_token';
     const MONTLY_INSTALLAMENTS = 'monthly_installments';
+    const SAVED_CARD = 'saved_card';
+    const SAVED_CARD_LATER = 'saved_card_later';
 
     protected $additionalInformationList = [
         self::CC_TYPE,
@@ -24,6 +26,8 @@ class DataAssignObserver extends AbstractDataAssignObserver
         self::CC_LAST_4,
         self::CARD_TOKEN,
         self::MONTLY_INSTALLAMENTS,
+        self::SAVED_CARD,
+        self::SAVED_CARD_LATER,
     ];
 
     protected $_checkoutSession;

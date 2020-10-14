@@ -1,5 +1,6 @@
 define(
     [
+        'ko',
         'conekta',
         'Magento_Payment/js/view/payment/cc-form',
         'jquery',
@@ -7,7 +8,7 @@ define(
         'Magento_Customer/js/model/customer',
         'Magento_Payment/js/model/credit-card-validation/validator'
     ],
-    function (CONEKTA, Component, $, quote, customer, validator) {
+    function (ko, CONEKTA, Component, $, quote, customer, validator) {
         'use strict';
 
         return Component.extend({
@@ -20,9 +21,48 @@ define(
                 return 'Conekta_Payments/payment/creditcard/form'
             },
 
+            initObservable: function () {
+
+                this._super()
+                    .observe([
+                        'ChangeCard',
+                        'SavedCardLater',
+                        'isSaveCardEnable',
+                        'paymentsShowNewCardSection',
+                        'selectedPaymentId'
+                ]);
+
+                this.paymentsShowNewCardSection(false);
+                this.ChangeCard.subscribe(this.onSelectedCardChanged, this);
+                this.SavedCardLater.subscribe(this.onSavedCardLaterChanged, this);
+
+                return this;
+            },
+
             initialize: function() {
                 var self = this;
                 this._super();
+            },
+            onSavedCardLaterChanged: function(newValue)
+            {
+                if(newValue){
+                    this.isSaveCardEnable(true);
+                }else{
+                    this.isSaveCardEnable(false);
+                }
+            },
+            /**
+             * @param newValue
+             */
+            onSelectedCardChanged: function(newValue)
+            {
+                if(newValue){
+                    this.paymentsShowNewCardSection(true);
+                    this.selectedPaymentId(newValue);
+                }else{
+                    this.paymentsShowNewCardSection(false);
+                    this.selectedPaymentId('');
+                }
             },
 
             getData: function () {
@@ -35,7 +75,9 @@ define(
                         'cc_exp_month': this.creditCardExpMonth(),
                         'cc_bin': number.substring(0, 6),
                         'cc_last_4': number.substring(number.length-4, number.length),
-                        'card_token': $("#" + this.getCode() + "_card_token").val()
+                        'card_token': $("#" + this.getCode() + "_card_token").val(),
+                        'saved_card': this.selectedPaymentId(),
+                        'saved_card_later': this.isSaveCardEnable()
                     }
                 };
 
@@ -47,9 +89,11 @@ define(
             },
 
             beforePlaceOrder: function () {
-                var $form = $('#' + this.getCode() + '-form');
                 var self = this;
-
+                if (this.paymentsShowNewCardSection() === true) {
+                    self.placeOrder();
+                }
+                var $form = $('#' + this.getCode() + '-form');
                 if($form.validation() && $form.validation('isValid')) {
                     self.messageContainer.clear();
 
@@ -86,6 +130,9 @@ define(
             },
 
             validate: function() {
+                if (this.paymentsShowNewCardSection() === true) {
+                    return true;
+                }
                 var $form = $('#' + this.getCode() + '-form');
                 return $form.validation() && $form.validation('isValid');
             },
@@ -134,6 +181,27 @@ define(
                 return this.getMethodConfig().availableTypes;
             },
 
+            getSaveCardEnable: function() {
+                return this.getMethodConfig().enable_saved_card;
+            },
+
+            getSavedCards: function() {
+                return this.getMethodConfig().saved_card;
+            },
+
+            getCardList: function() {
+                return _.map(this.getSavedCards(), function(value, key) {
+                    return {
+                        'value': key,
+                        'type': value
+                    }
+                });
+            },
+
+            isLoggedIn: function () {
+                return customer.isLoggedIn();
+            },
+            
             activeMonthlyInstallments: function() {
                 return this.getMethodConfig().active_monthly_installments;
             },
