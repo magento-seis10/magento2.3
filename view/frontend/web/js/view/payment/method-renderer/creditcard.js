@@ -1,13 +1,16 @@
 define(
     [
+        'ko',
         'conekta',
+        'conektaCheckout',
         'Magento_Payment/js/view/payment/cc-form',
         'jquery',
         'Magento_Checkout/js/model/quote',
         'Magento_Customer/js/model/customer',
-        'Magento_Payment/js/model/credit-card-validation/validator'
+        'Magento_Payment/js/model/credit-card-validation/validator',
+        'mage/storage'
     ],
-    function (CONEKTA, Component, $, quote, customer, validator) {
+    function (ko, CONEKTA, conektaCheckout, Component, $, quote, customer, validator, storage) {
         'use strict';
 
         return Component.extend({
@@ -20,9 +23,122 @@ define(
                 return 'Conekta_Payments/payment/creditcard/form'
             },
 
+            initObservable: function () {
+
+                this._super()
+                    .observe([
+                        'ChangeCard',
+                        'SavedCardLater',
+                        'isSaveCardEnable',
+                        'paymentsShowNewCardSection',
+                        'checkoutId',
+                        'selectedPaymentId',
+                        'isIframeLoaded',
+                        'isVisiblePaymentButton'
+                ]);
+
+                if  (this.getCardList().length === 0){
+                    this.paymentsShowNewCardSection(false);
+                }
+
+                this.ChangeCard.subscribe(this.onSelectedCardChanged, this);
+                this.SavedCardLater.subscribe(this.onSavedCardLaterChanged, this);
+
+                return this;
+            },
+
             initialize: function() {
                 var self = this;
                 this._super();
+            },
+
+            loadCheckoutId: function() {
+                var self = this;
+                var guest_email = '';
+                if (this.isLoggedIn() === false) {
+                    guest_email = quote.guestEmail;
+                }
+                var params = {
+                    'guestEmail': guest_email
+                };
+
+               return  $.ajax({
+                    type: 'POST',
+                    url: self.getcreateOrderUrl(),
+                    data: params,
+                    async: false,
+                    success: function (response) {
+                        self.checkoutId(response.checkout_id);
+                    },
+                    error: function (res) {
+                        console.log(res);
+                    }
+                });
+            },
+
+            getIframe: function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                if ($('#conektaIframeContainer').length) {
+                    this.loadCheckoutId();
+                    var self = this;
+                    var checkout_id = self.checkoutId();
+                    if (checkout_id) {
+                        window.ConektaCheckoutComponents.Integration({
+                            targetIFrame: '#conektaIframeContainer',
+                            checkoutRequestId: checkout_id,
+                            publicKey: this.getPublicKey(),
+                            paymentMethods: ['Card'],
+                            options: {
+                                theme: 'default'
+                            },
+                            onCreateTokenSucceeded: function (token) {
+                                console.log('onCreateTokenSucceeded');
+                                console.log(token);
+                            },
+                            onCreateTokenError: function (error) {
+                                console.log('onCreateTokenError');
+                                console.log(error);
+                            },
+                            onFinalizePayment: function () {
+                                self.placeOrder();
+                                console.log("FinalizePayment payment");
+                            }
+                        });
+                        $('#conektaIframeContainer').find('iframe').attr('data-cy', 'the-frame');
+                    }
+                }
+                return true;
+            },
+
+            onSavedCardLaterChanged: function(newValue)
+            {
+                if(newValue){
+                    this.isSaveCardEnable(true);
+                }else{
+                    this.isSaveCardEnable(false);
+                }
+            },
+            /**
+             * @param newValue
+             */
+            onSelectedCardChanged: function(newValue)
+            {
+                if (newValue === undefined){
+                    this.paymentsShowNewCardSection('');
+                    this.isVisiblePaymentButton(false);
+                    this.selectedPaymentId('');
+                    return;
+                }
+
+                if(newValue !== 'add_new_card') {
+                    this.paymentsShowNewCardSection(true);
+                    this.selectedPaymentId(newValue);
+                    this.isVisiblePaymentButton(true);
+                } else {
+                    this.paymentsShowNewCardSection(false);
+                    this.selectedPaymentId('');
+                    this.isVisiblePaymentButton(false);
+                }
             },
 
             getData: function () {
@@ -35,7 +151,9 @@ define(
                         'cc_exp_month': this.creditCardExpMonth(),
                         'cc_bin': number.substring(0, 6),
                         'cc_last_4': number.substring(number.length-4, number.length),
-                        'card_token': $("#" + this.getCode() + "_card_token").val()
+                        'card_token': $("#" + this.getCode() + "_card_token").val(),
+                        'saved_card': this.selectedPaymentId(),
+                        'saved_card_later': this.isSaveCardEnable()
                     }
                 };
 
@@ -47,9 +165,11 @@ define(
             },
 
             beforePlaceOrder: function () {
-                var $form = $('#' + this.getCode() + '-form');
                 var self = this;
-
+                if (this.paymentsShowNewCardSection() === true) {
+                    self.placeOrder();
+                }
+                var $form = $('#' + this.getCode() + '-form');
                 if($form.validation() && $form.validation('isValid')) {
                     self.messageContainer.clear();
 
@@ -86,6 +206,9 @@ define(
             },
 
             validate: function() {
+                if (this.paymentsShowNewCardSection() === true) {
+                    return true;
+                }
                 var $form = $('#' + this.getCode() + '-form');
                 return $form.validation() && $form.validation('isValid');
             },
@@ -132,6 +255,30 @@ define(
 
             getCcAvailableTypes: function() {
                 return this.getMethodConfig().availableTypes;
+            },
+
+            getcreateOrderUrl: function() {
+                return this.getMethodConfig().createOrderUrl;
+            },
+            getSaveCardEnable: function() {
+                return this.getMethodConfig().enable_saved_card;
+            },
+
+            getSavedCards: function() {
+                return this.getMethodConfig().saved_card;
+            },
+
+            getCardList: function() {
+                return _.map(this.getSavedCards(), function(value, key) {
+                    return {
+                        'value': key,
+                        'type': value
+                    }
+                });
+            },
+
+            isLoggedIn: function () {
+                return customer.isLoggedIn();
             },
 
             activeMonthlyInstallments: function() {
