@@ -42,9 +42,9 @@
                                         options: getMonthlyInstallments(),
                                         optionsText: function(month) {
                                             if (month == 1) {
-                                                return 'Un solo pago';
+                                                return 'Un solo pago: ' + getFormatTotal();
                                             } else {
-                                                return month + ' meses';
+                                                return month + ' meses (Total Diferido)';
                                             }
                                       }">
             </select>

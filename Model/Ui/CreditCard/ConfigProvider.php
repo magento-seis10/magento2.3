@@ -6,6 +6,9 @@ use Magento\Checkout\Model\ConfigProviderInterface;
 use Magento\Checkout\Model\Session;
 use Magento\Framework\View\Asset\Repository;
 use Magento\Payment\Model\CcConfig;
+use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Seis10\ContadoMSI\Helper\Data as MSIHelper;
+use Conekta\Payments\Logger\Logger as ConektaLogger;
 
 class ConfigProvider implements ConfigProviderInterface
 {
@@ -19,16 +22,33 @@ class ConfigProvider implements ConfigProviderInterface
 
     protected $_checkoutSession;
 
+    protected $_conektaLogger;
+
+    protected $_msiHelper;
+
+    /**
+     * @var \Magento\Framework\Pricing\PriceCurrencyInterface
+     */
+    protected $_priceCurrency;
+
     public function __construct(
         Repository $assetRepository,
         CcConfig $ccCongig,
         ConektaHelper $conektaHelper,
-        Session $checkoutSession
+        Session $checkoutSession,
+        PriceCurrencyInterface $priceCurrency,
+        MSIHelper $msiHelper,
+        ConektaLogger $conektaLogger
     ) {
         $this->_assetRepository = $assetRepository;
         $this->_ccCongig = $ccCongig;
         $this->_conektaHelper = $conektaHelper;
         $this->_checkoutSession = $checkoutSession;
+        $this->_priceCurrency   = $priceCurrency;
+        $this->_msiHelper       = $msiHelper;
+
+        $this->_conektaLogger = $conektaLogger;
+        $this->_conektaLogger->info('Conekta\Payments\Model\Ui\CreditCard\ConfigProvider:: __construct');
     }
 
     public function getConfig()
@@ -44,10 +64,37 @@ class ConfigProvider implements ConfigProviderInterface
                     'monthly_installments' => $this->getMonthlyInstallments(),
                     'active_monthly_installments' => $this->getActiveMonthlyInstallments(),
                     'minimum_amount_monthly_installments' => $this->getMinimumAmountMonthlyInstallments(),
-                    'total' => $this->getQuote()->getGrandTotal()
+                    'total' => $this->getQuote()->getGrandTotal(),
+                    'formattotal' => $this->customGetFormtatedPrice(),
+                    'formatInstalls' => $this->customGetFormtatedPriceInstallements()
                 ]
             ]
         ];
+    }
+
+    /**
+    * TEST NEW CUSTOM MODULES
+    */
+    public function customGetFormtatedPrice(){
+        //$this->_conektaLogger->info('Conekta\Payments\Model\Ui\CreditCard\ConfigProvider::customGetFormtatedPrice');
+
+        $total = $this->getQuote()->getGrandTotal();
+        $format = $this->_priceCurrency->format($total,false,2);
+        
+        //$this->_conektaLogger->info($format);
+        return $format;
+    }
+
+
+    public function customGetFormtatedPriceInstallements(){
+        $this->_conektaLogger->info('Conekta\Payments\Model\Ui\CreditCard\ConfigProvider::customGetFormtatedPriceInstallements');
+
+        $total  = $this->getQuote()->getGrandTotal();
+        $months = $this->getMonthlyInstallments();
+
+        $data   = $this->_msiHelper->getMSIOrder($total);
+
+        return $data;
     }
 
     public function getCcAvalaibleTypes()
@@ -67,7 +114,11 @@ class ConfigProvider implements ConfigProviderInterface
 
     public function getMonthlyInstallments()
     {
+        $this->_conektaLogger->info('Conekta\Payments\Model\Ui\CreditCard\ConfigProvider:: __getMonthlyInstallments');
+        
         $total = $this->getQuote()->getGrandTotal();
+        $this->_conektaLogger->info('TOTAL '.$total);
+
         $months = [1];
         if ((int)$this->getMinimumAmountMonthlyInstallments() < (int)$total) {
             $months = explode(',', $this->_conektaHelper->getConfigData('conekta_cc', 'monthly_installments'));
@@ -81,6 +132,10 @@ class ConfigProvider implements ConfigProviderInterface
                 }
             }
         }
+        
+        $this->_conektaLogger->info('months: ');
+        $this->_conektaLogger->info(json_encode($months));
+
         return $months;
     }
 
@@ -91,12 +146,15 @@ class ConfigProvider implements ConfigProviderInterface
 
     public function getActiveMonthlyInstallments()
     {
-        $isActive = $this->_conektaHelper->getConfigData('conekta/conekta_creditcard', 'active_monthly_installments');
-        if ($isActive == "0") {
-            return false;
-        } else {
-            return true;
-        }
+      $active_monthly_installments = $this->_conektaHelper->getConfigData('conekta/conekta_creditcard', 'active_monthly_installments');
+      if ($active_monthly_installments == "0")
+      {
+        return false;
+      }
+      else
+      {
+        return true;
+      }
     }
 
     public function getCvvImageUrl()

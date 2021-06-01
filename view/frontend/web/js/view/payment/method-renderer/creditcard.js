@@ -106,6 +106,10 @@ define(
                 return window.checkoutConfig.payment.conekta_cc
             },
 
+            getFormatTotal: function(){
+                return window.checkoutConfig.payment.conekta_cc.formattotal
+            },
+
             getPublicKey: function() {
                 return this.getGlobalConfig().publicKey;
             },
