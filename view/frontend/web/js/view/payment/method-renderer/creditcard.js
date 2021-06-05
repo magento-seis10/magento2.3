@@ -110,6 +110,13 @@ define(
                 return window.checkoutConfig.payment.conekta_cc.formattotal
             },
 
+            getFormatInstall: function(month){
+                var valores = window.checkoutConfig.payment.conekta_cc.formatInstalls
+                var texto = ' pagos de '+ valores[month]['topays'] + ' / Total: ' + valores[month]['total']
+                //return 'Valor que yo quiera '+ month
+                return texto;
+            },
+
             getPublicKey: function() {
                 return this.getGlobalConfig().publicKey;
             },

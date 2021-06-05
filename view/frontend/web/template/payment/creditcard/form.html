@@ -44,7 +44,7 @@
                                             if (month == 1) {
                                                 return 'Un solo pago: ' + getFormatTotal();
                                             } else {
-                                                return month + ' meses (Total Diferido)';
+                                                return month + getFormatInstall(month);
                                             }
                                       }">
             </select>
