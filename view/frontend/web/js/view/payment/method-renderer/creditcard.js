@@ -117,6 +117,11 @@ define(
                 return texto;
             },
 
+            updateFee: function() {
+                //var installments = parseInt($('#' + this.getCode() + '_monthly_installments').val());
+                console.log("cambiando la opción de los meses ");
+            },
+
             getPublicKey: function() {
                 return this.getGlobalConfig().publicKey;
             },

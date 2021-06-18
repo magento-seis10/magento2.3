@@ -38,6 +38,7 @@
                     data-bind="attr: {
                                         id: getCode() + '_monthly_installments', 'data-container': getCode() + '-monthly_installments',
                                         'data-validate': JSON.stringify({})},
+                                        click: updateFee
                                         enable: isActive($parents),
                                         options: getMonthlyInstallments(),
                                         optionsText: function(month) {
