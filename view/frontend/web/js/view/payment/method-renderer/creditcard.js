@@ -5,9 +5,10 @@ define(
         'jquery',
         'Magento_Checkout/js/model/quote',
         'Magento_Customer/js/model/customer',
-        'Magento_Payment/js/model/credit-card-validation/validator'
+        'Magento_Payment/js/model/credit-card-validation/validator',
+        'Magento_Checkout/js/checkout-data',
     ],
-    function (CONEKTA, Component, $, quote, customer, validator) {
+    function (CONEKTA, Component, $, quote, customer, validator, checkoutData) {
         'use strict';
 
         return Component.extend({
@@ -118,8 +119,11 @@ define(
             },
 
             updateFee: function() {
-                //var installments = parseInt($('#' + this.getCode() + '_monthly_installments').val());
-                console.log("cambiando la opción de los meses ");
+                var installments = parseInt($('#' + this.getCode() + '_monthly_installments').val());
+
+                checkoutData.setCustomPaymentFee(installments);
+                
+                console.log("cambiando la opción de los meses " + installments);
             },
 
             getPublicKey: function() {

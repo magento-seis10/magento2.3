@@ -67,6 +67,7 @@ class CaptureRequest implements BuilderInterface
             if ($this->_validateMonthlyInstallments($amount, $installments)) {
                 
                 //Siginifica que voy a modificar el valor total de la orden
+                /*
                 $new_amount = $this->_getFinalPriceWithInstallments($amount, $installments);
 
                 if($new_amount){
@@ -81,7 +82,7 @@ class CaptureRequest implements BuilderInterface
 
                     $request['metadata']['grand_total'] = $amount;
 
-                }
+                }*/
 
                 //Significa que pasó la validación de tener los meses activados y el monto fue mayor
                 $request['payment_method_details']['payment_method']['monthly_installments'] = $installments;
@@ -96,8 +97,8 @@ class CaptureRequest implements BuilderInterface
         $request['CURRENCY'] = $order->getCurrencyCode();
         $request['TXN_TYPE'] = 'A';
         $request['INVOICE'] = $order->getOrderIncrementId();
-        //$request['AMOUNT'] = number_format($order->getGrandTotalAmount(), 2);
-        $request['AMOUNT'] = number_format($amount, 2);
+        $request['AMOUNT'] = number_format($order->getGrandTotalAmount(), 2);
+        //$request['AMOUNT'] = number_format($amount, 2);
 
         $this->_conektaLogger->info('Request CaptureRequest :: build : return request', $request);
 
