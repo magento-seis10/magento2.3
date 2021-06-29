@@ -6,9 +6,12 @@ define(
         'Magento_Checkout/js/model/quote',
         'Magento_Customer/js/model/customer',
         'Magento_Payment/js/model/credit-card-validation/validator',
-        'Magento_Checkout/js/checkout-data',
+        'Magento_Checkout/js/checkout-data',        
+        'Magento_Checkout/js/model/cart/totals-processor/default',
+        'mage/storage',
+        'mage/url',
     ],
-    function (CONEKTA, Component, $, quote, customer, validator, checkoutData) {
+    function (CONEKTA, Component, $, quote, customer, validator, checkoutData, totalsDefaultProvider, storage, urlBuilder) {
         'use strict';
 
         return Component.extend({
@@ -120,8 +123,32 @@ define(
 
             updateFee: function() {
                 var installments = parseInt($('#' + this.getCode() + '_monthly_installments').val());
-
                 checkoutData.setCustomPaymentFee(installments);
+
+                var valores = window.checkoutConfig.payment.conekta_cc.formatInstalls
+
+                if(installments == 1){
+                    checkoutData.setCustomPaymentFeeDiff(0);
+                    valores[installments]['diff'] = 0;
+                }else{                    
+                    checkoutData.setCustomPaymentFeeDiff(valores[installments]['diff']);
+                }
+
+                return storage.post(
+                    urlBuilder.build('paymentfee/calculate/totals'),
+                    JSON.stringify({diff: valores[installments]['diff'] })
+                ).done(function (response) {
+                    console.log("updateFee response done");
+                    totalsDefaultProvider.estimateTotals(quote.shippingAddress());
+                }).fail(function () {
+                    console.log("updateFee response fail");
+                    
+                }).always(function () {
+                    console.log("updateFee response always");                    
+                });
+
+
+                
                 
                 console.log("cambiando la opción de los meses " + installments);
             },
