@@ -84,7 +84,7 @@ class TransactionRefund implements ClientInterface
         $response['transaction_id'] = $transactionId;
 
         $this->_conektaLogger->info(
-            'HTTP Client TransactionCapture :: placeRequest',
+            'HTTP Client TransactionCapture TransactionRefund :: placeRequest',
             [
                 'request' => $request,
                 'response' => $response

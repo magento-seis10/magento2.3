@@ -31,20 +31,21 @@
 <fieldset data-bind="attr: {class: 'fieldset payment items ccard ' + getCode(), id: 'payment_form_bottom' + getCode()}">
     <div class="field type">
         <label data-bind="attr: {for: getCode() + '_monthly_installments'}" class="label">
-            <span><!-- ko i18n: 'Meses sin intereses'--><!-- /ko --></span>
+            <span><!-- ko i18n: 'Total de Pagos'--><!-- /ko --></span>
         </label>
         <div class="control">
             <select name="payment[monthly_installments]" class="select select-monthly_installments"
                     data-bind="attr: {
                                         id: getCode() + '_monthly_installments', 'data-container': getCode() + '-monthly_installments',
                                         'data-validate': JSON.stringify({})},
+                                        click: updateFee
                                         enable: isActive($parents),
                                         options: getMonthlyInstallments(),
                                         optionsText: function(month) {
                                             if (month == 1) {
                                                 return 'Un solo pago: ' + getFormatTotal();
                                             } else {
-                                                return month + ' meses (Total Diferido)';
+                                                return month + getFormatInstall(month);
                                             }
                                       }">
             </select>
