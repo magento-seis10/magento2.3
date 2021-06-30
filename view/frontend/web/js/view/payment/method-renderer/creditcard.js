@@ -129,7 +129,7 @@ define(
 
                 if(installments == 1){
                     checkoutData.setCustomPaymentFeeDiff(0);
-                    valores[installments]['diff'] = 0;
+                    valores[1]['diff'] = 0;
                 }else{                    
                     checkoutData.setCustomPaymentFeeDiff(valores[installments]['diff']);
                 }
